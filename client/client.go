@@ -45,3 +45,29 @@ func (c *OpenWeatherMapClient) GetCurrentWeather(city string) (map[string]interf
 
 	return weatherData, nil
 }
+
+// GetWeatherByCoords retrieves the current weather data for a given latitude and longitude.
+func (c *OpenWeatherMapClient) GetWeatherByCoords(lat, lon float64) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%sweather?lat=%f&lon=%f&appid=%s&units=%s", BaseURL, lat, lon, c.APIKey, Units)
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr APIError
+		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
+			return nil, fmt.Errorf("error decoding API error response: %v", err)
+		}
+		apiErr.Code = resp.StatusCode
+		return nil, &apiErr
+	}
+
+	var weatherData map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&weatherData); err != nil {
+		return nil, err
+	}
+	return weatherData, nil
+}
